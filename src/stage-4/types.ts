@@ -3,10 +3,6 @@ export interface IDOMProps {
     children: IVNode[];
 }
 
-// export interface IDOMProps extends Omit<HTMLElement, "children">{
-//     children: IVNode[];
-// }
-
 // VNode可以用来描述某个子树（这里指广义的子树，包括整个组件树，狭义子树或者某个节点）
 export interface IVNode {
     // DOM元素类型，如div
@@ -24,12 +20,16 @@ export enum EEffectTags {
 export interface IFiber {
     dom: any;
     type: string;
-    props: {
-        children: IVNode[];
-    }
+    props: IProps;
     child: IFiber | null;
     sibling: IFiber | null;
     parent: IFiber | null;
     alternate: IFiber | null;
     effectTag?: EEffectTags;
 }
+
+export interface IProps extends Partial<Omit<Element, "children">>{
+    children: IVNode[];
+}
+
+export type IProperty = Partial<Omit<Element, "children">>;

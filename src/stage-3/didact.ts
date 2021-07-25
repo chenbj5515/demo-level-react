@@ -1,14 +1,15 @@
 
 import transformJSX from './transform-jsx';
 import createFiberDom from './create-dom';
-import {isEvent, isNormalProp, isGoneProp, isNewValueProp} from './helpers'
+import {isNormalProp, isGoneProp, isNewValueProp} from '../stage-3/helpers'
 import {IVNode, IFiber, EEffectTags, IDOMProps} from './types';
 
 let nextUnitOfWork: IFiber | null = null;
 let wipRoot: IFiber | null = null;
 // 用于记录一次flush中要被删除的元素们
 let delections: IFiber[] = [];
-
+// 当前存在的fiber树的根，首次肯定是null，首次提交后就有值了，rerender时会用到currentRoot
+let currentRoot: IFiber | null = null;
 
 function updateDOM(
     dom: any,
@@ -16,11 +17,13 @@ function updateDOM(
     nextProps: IDOMProps
 ) {
     Object.keys(prevProps)
-        .filter(isEvent)
+        .filter(isNormalProp)
         .filter(propKey => 
             isGoneProp(prevProps, nextProps)(propKey)
             || isNewValueProp(prevProps, nextProps)(propKey)
-        )
+        ).forEach(attrKey => {
+            dom[attrKey] = nextProps[attrKey];
+        })
 }
 
 /**
@@ -31,7 +34,6 @@ function updateDOM(
  */
 function commitWork (fiber: IFiber | null) {
     const domParent = fiber?.parent?.dom;
-    domParent && domParent.appendChild(fiber?.dom);
     if (fiber?.effectTag === EEffectTags.PLACEMENT) {
         fiber?.dom && domParent.appendChild(fiber.dom);
     } 
@@ -44,24 +46,8 @@ function commitWork (fiber: IFiber | null) {
 
 function commitRoot() {
     wipRoot?.child && commitWork(wipRoot.child);
+    currentRoot = wipRoot;
 }
-
-// function workLoop(ddl: IdleDeadline) {
-//     let shouldYield = false;
-//     while (nextUnitOfWork && !shouldYield) {
-//         nextUnitOfWork = performUnitOfWork(nextUnitOfWork);
-//         if (ddl.timeRemaining() < 1) {
-//             shouldYield = true;
-//         }
-//     }
-//     if (!nextUnitOfWork && wipRoot) {
-//         // console.log(wipRoot, 'wipRoot===');
-//         commitRoot();
-//     }
-//     // requestIdleCallback(workLoop);
-// }
-
-// requestIdleCallback(workLoop);
 
 /**
  * @param vNode 
@@ -79,7 +65,7 @@ function render (vNode: IVNode, container: any) {
         child: null,
         sibling: null,
         type: 'div',
-        alternate: null
+        alternate: currentRoot
     }
     nextUnitOfWork = wipRoot;
     while (nextUnitOfWork) {
@@ -157,7 +143,6 @@ function generateNewFiber(element: IVNode, wipFiber: IFiber | null, oldFiber: IF
         oldFiber.effectTag = EEffectTags.DELETION;
         delections.push(oldFiber);
     }
-
     return newFiber;
 }
 
