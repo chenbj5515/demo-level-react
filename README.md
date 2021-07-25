@@ -20,7 +20,9 @@
 	<a>bar</a>
 	<b />
 </div>
+```
 
+```
 // 经过babel处理变为函数调用
 DemoLevelReact.createVNode(
 	'div',
@@ -36,7 +38,9 @@ DemoLevelReact.createVNode(
 		null
 	)
 )
+```
 
+```
 // 最终变为vNode树
 {
 	type: 'div',
