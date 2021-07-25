@@ -29,13 +29,13 @@ DemoLevelReact.createVNode(
   {id: 'foo'},
   DemoLevelReact.createVNode(
     'a',
-	null,
-	'bar'
+    null,
+    'bar'
   ),
   DemoLevelReact.createVNode(
-	'b',
-	null,
-	null
+    'b',
+    null,
+    null
   )
 )
 ```
@@ -45,29 +45,29 @@ DemoLevelReact.createVNode(
 {
   type: 'div',
   props: {
-	id: 'foo',
-	children: [
-		{
-			type: 'a',
-			props: {
-				children: [
-					{
-						type: 'TEXT_ELEMENT',
-						props: {
-							nodeValue: 'bar',
-							children: []
-						}
-					}
-				]
-			}
-		},
-		{
-			type: 'b',
-			props: {
-				children: []
-			}
-		}
-	]
+    id: 'foo',
+    children: [
+      {
+	type: 'a',
+	props: {
+	  children: [
+	    {
+	      type: 'TEXT_ELEMENT',
+	      props: {
+		  nodeValue: 'bar',
+		  children: []
+	      }
+	    }
+	  ]
+	}
+      },
+     {
+	type: 'b',
+	props: {
+		children: []
+	}
+     }
+    ]
   }
 }
 ```
