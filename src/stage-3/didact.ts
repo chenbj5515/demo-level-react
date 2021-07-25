@@ -147,22 +147,21 @@ function generateNewFiber(element: IVNode, wipFiber: IFiber | null, oldFiber: IF
 }
 
 /**
- * 将当前已转为fiber的节点所有子节点都转为fiber
+ * 将当前已转为fiber的节点所有子节点从vNode转为fiber
  * @param fiber 
  */
 function reconcileChildren(wipFiber: IFiber) {
-    const elements = wipFiber.props.children;
+    const vNodes = wipFiber.props.children;
     let i = 0;
     // 刚开始上一个兄弟肯定是null，长子的fiber创建时，上一个兄弟才创建。
     let prevSibling: IFiber | null = null;
     let oldFiber = wipFiber.alternate && wipFiber.alternate.child;
     
     while (
-        i < elements.length
+        i < vNodes.length
     ) {
-        let element = elements[i];
-        const newFiber = generateNewFiber(element, wipFiber, oldFiber);
-        
+        let curVNode = vNodes[i];
+        const newFiber = generateNewFiber(curVNode, wipFiber, oldFiber);
         if (i === 0 && newFiber) {
             wipFiber.child = newFiber;
         }
@@ -173,7 +172,6 @@ function reconcileChildren(wipFiber: IFiber) {
         oldFiber = oldFiber?.sibling ? oldFiber.sibling : null;
         i++;
     }
-    
 }
 
 const Didact = {
