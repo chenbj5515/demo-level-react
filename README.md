@@ -17,14 +17,12 @@
 ```tsx
 // jsx
 <div id="foo">
-	<a>
-		bar
-	</a>
+	<a>bar</a>
 	<b />
 </div>
 
 // 经过babel处理变为函数调用
-[DemoLevelReact.createVNode]()(
+DemoLevelReact.createVNode(
 	'div',
 	{id: 'foo'},
 	DemoLevelReact.createVNode(
@@ -41,30 +39,30 @@
 
 // 最终变为vNode树
 {
-	'type': 'div',
-	'props': {
-		'id': 'foo',
-		'children': [
-				{
-					'type': 'a',
-					'props': {
-						'children': [
-							{
-								'type': 'TEXT_ELEMENT',
-								'props': {
-									'nodeValue': 'bar',
-									'children': []
-								}
+	type: 'div',
+	props: {
+		id: 'foo',
+		children: [
+			{
+				type: 'a',
+				props: {
+					children: [
+						{
+							type: 'TEXT_ELEMENT',
+							props: {
+								nodeValue: 'bar',
+								children: []
 							}
-						]
-					}
-				},
-				{
-					'type': 'b',
-					'props': {
-						'children': []
-					}
+						}
+					]
 				}
+			},
+			{
+				type: 'b',
+				props: {
+					children: []
+				}
+			}
 		]
 	}
 }
