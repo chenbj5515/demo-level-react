@@ -8,9 +8,9 @@ let nextUnitOfWork: IFiber | null = null;
 let delections: IFiber[] = [];
 
 function performUnitOfWork(wipFiber: IFiber) {
-    // if (!wipFiber.dom) {
-    //     wipFiber.dom = createFiberDom(wipFiber.type, wipFiber.props);
-    // }
+    if (!wipFiber.dom) {
+        wipFiber.dom = createFiberDom(wipFiber.type, wipFiber.props);
+    }
     reconcileChildren(wipFiber);
     return getNextFiber(wipFiber);
 }
@@ -51,6 +51,10 @@ function vNode2Fiber(
     }
 }
 
+/**
+ * @param fatherFiber 
+ * @desp 首次渲染时，将当前fiber的所有子节点由vNode转为生成fiber，这样fiber tree的下一层就创建好了
+ */
 function reconcileChildren(fatherFiber: IFiber) {
     let lastOldFiber = fatherFiber?.alternate?.child;
     let vNodes = fatherFiber?.props?.children;
@@ -75,11 +79,13 @@ function reconcileChildren(fatherFiber: IFiber) {
 
 function getNextFiber(curFiber: IFiber): IFiber | null {
     if (curFiber?.child) {
+        console.log('next fiber is child:', curFiber.child);
         return curFiber.child;
     }
     let nextFiber: IFiber | null = curFiber;
     while (nextFiber) {
         if (nextFiber?.sibling) {
+            console.log('next fiber is sibling:', nextFiber.sibling);
             return nextFiber.sibling;
         }
         nextFiber = nextFiber?.parent;
@@ -88,8 +94,6 @@ function getNextFiber(curFiber: IFiber): IFiber | null {
 }
 
 function render(vNode: IVNode, container: Element) {
-    console.log(vNode, '检测vNode是否正确');
-    
     wipRoot = {
         dom: container,
         type: 'div',
@@ -105,7 +109,6 @@ function render(vNode: IVNode, container: Element) {
     while(nextUnitOfWork) {
         nextUnitOfWork = performUnitOfWork(nextUnitOfWork);
     }
-    console.log(wipRoot, '全部转为fiber后的wipRoot');
 }
 
 const DemoLevelReact = {
