@@ -2,7 +2,8 @@
 
 # 前言
 
-这个仓库(https://github.com/chenbj5515/demo-level-react)中我们会一步一步实现一个demo级的React，没有任何的技术上的新意与花样，仅供自己以及和自己一样的React初学者初步了解React的工作原理使用。
+这个仓库(https://github.com/chenbj5515/demo-level-react)
+中我们会一步一步实现一个demo级的React，没有任何的技术上的新意与花样，仅供自己以及和自己一样的React初学者初步了解React的工作原理使用。
 
 我们的目标：
 
