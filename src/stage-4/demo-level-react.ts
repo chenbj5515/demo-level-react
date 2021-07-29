@@ -1,11 +1,24 @@
 import {EEffectTags, IFiber, IVNode} from './types';
-import {createFiberDom} from './create-dom';
+import {createFiberDom, patch} from './dom-opreations';
 import createVNode from './create-vnode';
 
 let wipRoot: IFiber | null = null;
 let currentRoot: IFiber | null = null;
 let nextUnitOfWork: IFiber | null = null;
-let delections: IFiber[] = [];
+let deletions: IFiber[] = [];
+
+function commitWork(toSubmitFiber: IFiber) {
+    const nextToSubmitFiber = getNextFiber(toSubmitFiber);
+    patch(toSubmitFiber);
+    nextToSubmitFiber && commitWork(nextToSubmitFiber);
+}
+
+function commitRoot() {
+    deletions.forEach(commitWork);
+    deletions = [];
+    wipRoot?.child && commitWork(wipRoot.child);
+    currentRoot = wipRoot;
+}
 
 function performUnitOfWork(wipFiber: IFiber) {
     if (!wipFiber.dom) {
@@ -33,6 +46,10 @@ function vNode2Fiber(
             effectTag: EEffectTags.UPDATE
         }
     }
+    if (oldFiber && !sameType) {
+        oldFiber.effectTag = EEffectTags.DELETION,
+        deletions.push(oldFiber);
+    }
     if (vNode && !sameType) {
         return {
             dom: null,
@@ -45,10 +62,6 @@ function vNode2Fiber(
             effectTag: EEffectTags.PLACEMENT
         }
     }
-    if (oldFiber && !sameType) {
-        oldFiber.effectTag = EEffectTags.DELETION,
-        delections.push(oldFiber);
-    }
 }
 
 /**
@@ -60,32 +73,35 @@ function reconcileChildren(fatherFiber: IFiber) {
     let vNodes = fatherFiber?.props?.children;
     let i = 0;
     let lastSibling: IFiber | null = null;
-    while (i < vNodes.length) {
-        const newFiber = vNode2Fiber(vNodes[i], fatherFiber, lastOldFiber);
-        if (!newFiber) {
-            lastOldFiber = lastOldFiber?.sibling;
-            break;
+    while ((vNodes && i < vNodes.length) || lastOldFiber) {
+        if (vNodes && i < vNodes.length) {
+            const newFiber = vNodes && vNode2Fiber(vNodes[i], fatherFiber, lastOldFiber);
+            if (!newFiber) {
+                break;
+            }
+            if (i === 0) {
+                fatherFiber.child = newFiber;
+            }
+            if (lastSibling) {
+                lastSibling.sibling = newFiber;
+            }
+            lastSibling = newFiber;
+            i++;
         }
-        if (i === 0) {
-            fatherFiber.child = newFiber;
+        else {
+            lastOldFiber && deletions.push(lastOldFiber);
         }
-        if (lastSibling) {
-            lastSibling.sibling = newFiber;
-        }
-        lastSibling = newFiber;
-        i++;
+        lastOldFiber = lastOldFiber?.sibling;
     }
 }
 
 function getNextFiber(curFiber: IFiber): IFiber | null {
     if (curFiber?.child) {
-        console.log('next fiber is child:', curFiber.child);
         return curFiber.child;
     }
     let nextFiber: IFiber | null = curFiber;
     while (nextFiber) {
         if (nextFiber?.sibling) {
-            console.log('next fiber is sibling:', nextFiber.sibling);
             return nextFiber.sibling;
         }
         nextFiber = nextFiber?.parent;
@@ -109,6 +125,7 @@ function render(vNode: IVNode, container: Element) {
     while(nextUnitOfWork) {
         nextUnitOfWork = performUnitOfWork(nextUnitOfWork);
     }
+    commitRoot();
 }
 
 const DemoLevelReact = {

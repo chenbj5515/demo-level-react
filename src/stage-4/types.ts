@@ -17,8 +17,10 @@ export enum EEffectTags {
     DELETION = 'DELETION'
 }
 
+export type IDom = Element | Text | null;
+
 export interface IFiber {
-    dom: any;
+    dom: IDom;
     type: string;
     props: IProps;
     child: IFiber | null;
@@ -29,7 +31,7 @@ export interface IFiber {
 }
 
 export interface IProps extends Partial<Omit<Element, "children">>{
-    children: IVNode[];
+    children?: IVNode[];
 }
 
 export type IProperty = Partial<Omit<Element, "children">>;
