@@ -1,3 +1,4 @@
+import React from 'react';
 import DemoLevelReact from './demo-level-react';
   
 const container = document.getElementById("root");

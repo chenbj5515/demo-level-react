@@ -122,7 +122,7 @@ function render(vNode: IVNode, container: Element) {
         },
     }
     nextUnitOfWork = wipRoot;
-    while(nextUnitOfWork) {
+    while (nextUnitOfWork) {
         nextUnitOfWork = performUnitOfWork(nextUnitOfWork);
     }
     commitRoot();

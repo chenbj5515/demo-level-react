@@ -10,9 +10,11 @@
 - [ ]  清晰化vNode的基本结构以及JSX是如何转为vNode的(stage-0)
 - [ ]  把vNode树render为真实DOM(stage-1, stage-2)
 - [ ]  在上一个的基础上支持更新、删除节点的操作(stage-3,stage-4)
-- [ ]  在上一个的基础上支持函数式子组件
+- [ ]  在上一个的基础上支持函数式子组件(stage-5)
 - [ ]  在上一个的基础上支持函数式子组件的useState等hooks api
 - [ ]  在上一个的基础上支持diff算法
+
+本项目的代码大部分参考了https://pomb.us/build-your-own-react/这篇文章中的代码，感谢Rodrigo Pombo为社区提供的优质内容。
 
 # 从JSX到vNode
 
@@ -113,3 +115,66 @@ vNode树是我们执行完渲染函数就有的，把vNode初次渲染为DOM仅�
 ## fiber的遍历
 fiber的遍历顺序看图就明白了, 用语言描述的话就是先return child，到底了就return sibling，没有sibling了就先找到parent后找return parent的sibling，直到parent也没有了就return null结束。
 ![alt fiber-order](./src/diagram/fiber-order.png)
+
+# 函数式组件
+## 最简实现
+最简单的函数式组件形如：
+```
+const Child = () => (
+    <div>child</div>
+);
+
+const App = () => (
+    /** @jsx React.createVNode */
+    <div>
+        <p>bar</p>
+        <Child />
+    </div>
+);
+```
+我们先来看看在babel会如何处理函数式组件：
+```
+// 经过babel处理变为函数调用
+React.createVNode(
+  'div',
+  {},
+  React.createVNode(
+    'p',
+    {},
+    'bar'
+  ),
+  React.createVNode(
+    () => /* @__PURE__ */ React.createVNode(
+      'div',
+      {},
+      'child'
+    ),
+    {},
+    []
+  )
+)
+```
+可以看到，babel处理函数式组件时，会把组件函数本身作为type参数传入。也就是说，函数式组件时，type字段就不是一个标签的字符串了，而是组件函数本身。
+我们也可以维持createNode函数不变，仅仅不过是vNode树中节点的type字段可能是函数而已。<br>
+那么fiber树呢？<br>
+这里我们的处理是把函数组件本身也作为一个fiber节点，只不过这个节点的dom字段为null，而函数组件返回的vNode，我们还是处理为正常的fiber并且挂到组件fiber的child字段上。<br>
+在这个最简例子里，就是Child组件中的div标签对应的fiber会是组件fiber的child。<br>
+其实有组件情况下整个fiber树和正常的fiber树基本没什么区别。
+我们在处理上的区别只有：<br>
+1.处理组件的fiber时，props中是没有children的，需要执行type方法获取到child交由reconcileChildren函数处理<br>
+2.组件fiber没有dom，所以在最终创建、更新、删除dom时，parentDom要向上找，删除的dom则要找child
+## 组件的删除
+```
+const Child = () => (
+    <div>child</div>
+);
+
+const App = () => (
+    /** @jsx React.createVNode */
+    <div>
+        <p>bar</p>
+        <Child />
+    </div>
+);
+```
+
