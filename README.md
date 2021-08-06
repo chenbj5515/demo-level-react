@@ -163,18 +163,64 @@ React.createVNode(
 我们在处理上的区别只有：<br>
 1.处理组件的fiber时，props中是没有children的，需要执行type方法获取到child交由reconcileChildren函数处理<br>
 2.组件fiber没有dom，所以在最终创建、更新、删除dom时，parentDom要向上找，删除的dom则要找child
-## 组件的删除
+## Hook的实现
+### 第一个useState
 ```
-const Child = () => (
-    <div>child</div>
-);
+import React, {useState} from './demo-level-react';
 
-const App = () => (
-    /** @jsx React.createVNode */
-    <div>
-        <p>bar</p>
-        <Child />
-    </div>
-);
+const Child = () => {
+    const [count, setCount] = useState(0);
+
+    function hanldeClick() {
+        setCount(count => count + 1);
+    }
+
+    return (
+        <div>
+            <div onClick={hanldeClick}>点我add count</div>
+            {count}
+        </div>
+    )
+}
+    
+/** @jsx React.createVNode */
+const App = () => {
+    console.log('根部rerender');
+    
+    return (
+        <div>
+            <p>bar</p>
+            <Child />
+        </div>
+    )
+}
+  
+const container = document.querySelector('#root');
+
+container && React.render(<App />, container);
 ```
+我们首先实现这个最简单的useState的case(stage-6)<br>
+要实现这个功能，有两个关键点：<br>
+1.setState时如何拿到上一次的状态？<br>
+2.拿到上一次状态后如何触发更新？<br>
+首先第一个问题，我们的答案是把状态放到fiber节点上，用一个数组存储住每一次的状态：
+```
+export type TAction<T> = (state: T) => T;
 
+export interface IHook<T> {
+    state: T;
+    queue: TAction<T>[];
+}
+
+export interface IFiber<T = any> {
+    // 其他无关属性省略
+    hooks?: IHook<T>[];
+}
+```
+每次取hooks列表中最新的state就是上次的state<br>
+至于如何触发重新渲染，我们之前的渲染就是重新生成wipRoot, 把alternative指向currentRoot, 然后重新生成一遍fiber tree，生成中会和prevFiber做对比，看看是更新还是创建dom。<br>
+但这样肯定不是我们想要的，因为的更新维度是整个组件树了，而我们知道React中一个组件中setState只会更新组件子树。<br>
+所以我们就重新生成一遍组件子树范围内的fiber tree:<br>
+1.我们能在hook内拿到组件的fiber, 那么先把组件fiber的alternative设为自身.这样才能保证是更新而不会创建新的组件<br>
+2.通过performUnitOfWork方法生成新的整个子树的fiber，在这个过程中我们会重新执行type方法->重新执行函数式组件->拿到最新的hook state->产生新的vNode->产生带有新dom的fiber<br>
+3.最终我们提交组件子树，把fiber转为真实的dom<br>
