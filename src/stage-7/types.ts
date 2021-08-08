@@ -21,9 +21,9 @@ export type IDom = Element | Text | null;
 
 export type TAction<T> = (state: T) => T;
 
-export interface IHook<T = any> {
+export interface IHook<T> {
     state: T;
-    queue: TAction<T>[];
+    queue: (TAction<T> | AnyFunc)[];
 }
 
 export interface IFiber<T = any> {

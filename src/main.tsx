@@ -1,1 +1,1 @@
-import './stage-6';
+import './stage-7';

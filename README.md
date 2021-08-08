@@ -11,10 +11,10 @@
 - [ ]  把vNode树render为真实DOM(stage-1, stage-2)
 - [ ]  在上一个的基础上支持更新、删除节点的操作(stage-3,stage-4)
 - [ ]  在上一个的基础上支持函数式子组件(stage-5)
-- [ ]  在上一个的基础上支持函数式子组件的useState等hooks api
+- [ ]  在上一个的基础上支持函数式子组件的useState等hooks api(stage-6)
 - [ ]  在上一个的基础上支持diff算法
 
-本项目的代码大部分参考了https://pomb.us/build-your-own-react/这篇文章中的代码，感谢Rodrigo Pombo为社区提供的优质内容。
+本项目的代码大部分参考了 https://pomb.us/build-your-own-react/ 这篇文章中的代码，感谢Rodrigo Pombo为社区提供的优质内容。
 
 # 从JSX到vNode
 
@@ -224,3 +224,63 @@ export interface IFiber<T = any> {
 1.我们能在hook内拿到组件的fiber, 那么先把组件fiber的alternative设为自身.这样才能保证是更新而不会创建新的组件<br>
 2.通过performUnitOfWork方法生成新的整个子树的fiber，在这个过程中我们会重新执行type方法->重新执行函数式组件->拿到最新的hook state->产生新的vNode->产生带有新dom的fiber<br>
 3.最终我们提交组件子树，把fiber转为真实的dom<br>
+
+### useState+useEffect
+先上要实现的功能：
+```
+import React, {useState, useEffect} from './demo-level-react';
+
+const Child = () => {
+    const [count, setCount] = useState(0);
+
+    useEffect(() => {
+        console.log(count, '[]作为deps的useEffect');
+    }, []);
+
+    useEffect(() => {
+        console.log(count, 'count改变了呢');
+    }, [count]);
+
+    function hanldeClick() {
+        setCount(count => count + 1);
+    }
+
+    return (
+        <div>
+            <div onClick={hanldeClick}>点我add count</div>
+            {count}
+        </div>
+    )
+}
+    
+/** @jsx React.createVNode */
+const App = () => {
+    console.log('根部rerender');
+    
+    return (
+        <div>
+            <p>bar</p>
+            <Child />
+        </div>
+    )
+}
+  
+const container = document.querySelector('#root');
+
+container && React.render(<App />, container);
+```
+在讲解之前我们抛出一个问题：为什么React Hooks中会有不能if这种语句的限制？<br>
+下面我会从代码实现角度回答下这个问题：<br>
+因为我们的hooks是挂在函数组件fiber上的，hooks的语义就是hook list, 数组项就是一个hook比如useState或者useEffect.<br>
+我们要保证的一点是，每次渲染hooks列表中的元素个数和顺序是相同的。<br>
+为什么要保证个数和顺序相同，因为这样实现起来简单呀（不要忽略了简单，简单合理比好用更重要）<br>
+下面具体说下为什么简单：<br>
+1.首次渲染的时候，我们把全局的hookIndex置为0.<br>
+2.创建第一个hook useState的实例，其实就是一个state: 0和一个actions: [].actions代表要被执行的动作列表，初始为空，当执行了setState方法时才会往actions中push，然后下次渲染时才flush这个列表执行所有action，计算出最新的state然后返回给函数式组件.<br>
+3.在这之后我们会把useState的hook实例push到comp fiber的hooks中<br>
+4.创建第二个hook useEffect的实例，其实就是一个deps: deps, 首先首次渲染我们会执行一次effect，之后我们会比对本次传入的deps和上次渲染的deps中的元素是否有任何变更，有任何变更都会执行effect函数.<br>
+5.然后我们会把useEffect的实例push到comp fiber的hooks中，并且结束第一次渲染来到关键的第二次渲染.<br>
+6.第二次渲染先来到useState钩子，我们要拿到上次渲染的hook实例，并且取到actions变量来遍历得出新的state.我们只需要取上次的comp fiber的hooks[hookIndex]就可以了，因为我们约定了每次渲染的hook的数目和顺序。<br>
+7.然后我们就只需要hookIndex++就能让下次hooks[hookIndex]取到下个钩子，无论是prev comp fiber的hooks[hookIndex]还是cur comp fiber的hooks[hookIndex]，取的都一定是同一个钩子的hook state，能基于上次状态继续work.<br>
+8.来到useEffect钩子，我们会比较cur comp fiber的hooks[hookIndex].deps和prev comp fiber的hooks.deps的差异，有差就执行effect.<br>
+9.最后我们所有hook执行完毕，new fiber生成完毕，compTree也commit完毕后会重置函数组件的hookIndex，然后下次冲渲染的时候再从头到尾遍历。<br>
