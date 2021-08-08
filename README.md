@@ -282,5 +282,7 @@ container && React.render(<App />, container);
 5.然后我们会把useEffect的实例push到comp fiber的hooks中，并且结束第一次渲染来到关键的第二次渲染.<br>
 6.第二次渲染先来到useState钩子，我们要拿到上次渲染的hook实例，并且取到actions变量来遍历得出新的state.我们只需要取上次的comp fiber的hooks[hookIndex]就可以了，因为我们约定了每次渲染的hook的数目和顺序。<br>
 7.然后我们就只需要hookIndex++就能让下次hooks[hookIndex]取到下个钩子，无论是prev comp fiber的hooks[hookIndex]还是cur comp fiber的hooks[hookIndex]，取的都一定是同一个钩子的hook state，能基于上次状态继续work.<br>
-8.来到useEffect钩子，我们会比较cur comp fiber的hooks[hookIndex].deps和prev comp fiber的hooks.deps的差异，有差就执行effect.<br>
+8.来到useEffect钩子，我们会比较cur comp fiber的hooks[hookIndex].deps本次传入得deps的差异，有差就执行effect.<br>
 9.最后我们所有hook执行完毕，new fiber生成完毕，compTree也commit完毕后会重置函数组件的hookIndex，然后下次冲渲染的时候再从头到尾遍历。<br>
+
+总结一下重点，**就是说为了获取prev comp fiber的对应hook的逻辑简单，只需要一个自增的hookIndex就能能拿到上次的hook state.**
