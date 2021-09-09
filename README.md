@@ -286,3 +286,55 @@ container && React.render(<App />, container);
 9.最后我们所有hook执行完毕，new fiber生成完毕，compTree也commit完毕后会重置函数组件的hookIndex，然后下次冲渲染的时候再从头到尾遍历。<br>
 
 总结一下重点，**因为hook的功能一定要获取上次渲染的hook state(如useEffect要上次的deps)，而保证了组件的hooks数目和顺序一致，那获取prev comp fiber的对应hook的逻辑就简单了，只需要一个自增的hookIndex就能能拿到上次的hook state.**
+
+
+### pause and think: 我们每次setState的时候，是如何触发更新的？
+
+首先，我们在创建/更新函数组件fiber后会把currentFiber这个全局变量置为函数组件的fiber，然后会执行函数式组件，执行函数组件后就会执行其中的useState等钩子，useState内部的getHook会从currentFiber这个全局变量上获取到函数式组件的fiber。
+基于以上，其实我们useState钩子内永远是永远可以拿到最新的组件fiber的。而有了组件的fiber，更新就很容易理解了，其实不就是setState的时候传入一个新的state，然后基于这个新的state reconcile组件就是了。<br>
+这也回答了一个面试问题:
+```
+const [count, setCount] = useState(0);
+useEffect(() => {
+  // 在window上绑定window.setCount = setCount，调用window.setCount(count => count + 1)能否更新组件让count+1
+  // 多次调用也会累加吗呢？
+  // @ts-ignore
+  window.setCount = setCount;
+}, []);
+```
+是可以的，多次也都可以成功累加。有人可能疑惑：window上的setCount函数是第一次生成的，而不是最新生成的。setState传入的是一个oldState=>newState的计算，更新需要新状态和当前组件fiber两个条件。也就是说setCount需要获取到最新的last state和最新的组件fiber才能正确更新，但是旧的setCount函数可以获取到这两个新值吗？其实是可以的，那么我们就好奇React是如何做到自动更新这两个的呢？<br>
+我们先用一个最简模型给大家看看，然后再分析原因：
+
+```
+const compFiber = {
+  hook: []
+}
+
+const getHook = () => {
+  return [compFiber.hook, compFiber];
+}
+
+const useState = initialState => {
+  const [hook, compFiber] = getHook();
+  return [
+    hook.length === 0 ? (hook[0] = initialState) : hook[0],
+    fn => {
+      console.log('看看能否获取到最新的last state:', hook[0]);
+      hook[0] = fn(hook[0]);
+    }
+  ]
+}
+
+const [count1, oldSetCount] = useState(0);
+
+// 会得到最新的last state
+oldSetCount(count => count + 1)
+
+// setState后一定会再次执行函数式组件，所以会再次执行useState
+const [count2, newSetCount] = useState(0);
+
+// 即使调用旧的setState仍会得到最新的last state
+oldSetCount(count => count + 1)
+```
+好了，把这段代码copy到浏览器我们是能看到两次调用oldSetCount还是会得到最新的oldState的。
+看了代码基础及格的同学就明白了，我们在setState引用的hook是一直都存在的一块内存，而每次setCount就是更新这块内存，而再次调用还是读这块内存，所以自然能获取到最新的last state。内存这个我再补充下，只要不手动清理或者还有变量引用，内存空间就一直存在，读取变量时获取的自然是这块内存上的最新值。
