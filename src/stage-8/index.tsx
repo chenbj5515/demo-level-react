@@ -1,41 +1,28 @@
-import React, {useState, useEffect, useReducer} from './index';
-// import React, {useState, useEffect} from 'react';
+import React, {useState} from './demo-level-react';
+// import React, {useState,useEffect} from 'react';
+// import ReactDOM from 'react-dom';
 
-const Child = () => {
-    const [count, setCount] = useState(0);
-
-    useEffect(() => {
-        console.log(count, '[]作为deps的useEffect');
-    }, []);
-
-    useEffect(() => {
-        console.log(count, 'count改变了呢');
-    }, [count]);
-
-    function hanldeClick() {
-        setCount(count => count + 1);
-    }
-
+export default function App() {
+    const [list, setList] = useState([
+        {type: 'div', key: 'A', text: 'A'},
+        {type: 'div', key: 'D', text: 'D'}]);
     return (
-        <div>
-            <div onClick={hanldeClick}>点我add count</div>
-            {count}
-        </div>
+        <>
+            {
+                list.map((item: any) => (
+                    <div key={item.key}>{item.text}</div>
+                ))
+            }
+        </>
     )
-}
-    
-/** @jsx React.createVNode */
-const App = () => {
-    console.log('根部rerender');
-    
-    return (
-        <div>
-            <p>bar</p>
-            <Child />
-        </div>
-    )
-}
-  
-const container = document.querySelector('#root');
-const root = React.creatRoot(container);
-root.render(<App />, container);
+} 
+
+const nextList = [
+    {type: 'div', key: 'C', text: 'C'},
+    {type: 'text', value: 'updated B'}
+];
+
+// ReactDOM.render(<App />, document.querySelector('#root'));
+
+const root = React.creatRoot(document.querySelector('#root'));
+root.render(<App />);

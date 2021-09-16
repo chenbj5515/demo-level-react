@@ -5,6 +5,6 @@ export * from './hook';
 export * from './types';
 
 export default {
-    createVNode,
+    createElement: createVNode,
     creatRoot,
 }
