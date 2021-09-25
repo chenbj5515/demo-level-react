@@ -17,7 +17,7 @@ export interface IDOMProps {
 */
 export interface IProps {
     [key: string]: any;
-    children: (IVNode | string | number)[];
+    children: (IVNode | string | number)[] | (IVNode | string | number)[][];
 }
 
 interface ICommonVNode {
@@ -40,34 +40,71 @@ export type IDom = Element | Text | null;
 
 export type TAction<T> = (state: T) => T;
 
-export interface IHook<T> {
-    state: T;
-    queue: (TAction<T> | AnyFunc)[];
+export interface IState {
+    state: any;
+    next: IHook;
 }
 
-interface ICommonFiber extends ICommonVNode {
+export interface IEffect {
+    effect: Function;
+    deps: any[];
+    next: IHook;
+}
+
+export type IHook = IState | IEffect | null;
+
+interface ICommonFiber {
     isComp: boolean;
     stateNode?: IDom;
-    key: string | number;
     child?: IFiber | null;
     sibling?: IFiber | null;
     parent?: IFiber | null;
     alternate?: IFiber | null;
     flags: EFlags;
-    hooks?: any;
     idx?: number;
-    oldProps?: IProps;
-    pendingProps?: string | number;
+    key: string | number | null;
+    hooks?: IHook;
+    renderTimes?: number | null;
 }
 
-export type IFiber = ICompFiber | INormalFiber;
+/**
+ * @description 当\<div>a\<p>b\</p>\</div>这种结构时，会存在text element对应的fiber
+ * @description 其特征是pendingProps属性不是含有children等属性的对象，而是文本的字符串
+ */
+export interface ITextFiber extends ICommonFiber {
+    stateNode: Text | null;
+    type: null;
+    pendingProps: string | number;
+    memoizedProps?: string | number;
+}
+
+export interface INormalTextFiber extends ICommonFiber {
+    key: string | number | null;
+    stateNode: Element;
+    type: string;
+    pendingProps: {
+        children: (string | number)[]
+    };
+    memoizedProps: {
+        children: (string | number)[]
+    };
+}
+
+export type IFiber = ICompFiber | INormalFiber | ITextFiber;
 
 export interface ICompFiber extends ICommonFiber {
-    type: (props: IProps) => INormalVNode;
+    key: string | number;
+    type: (props: IProps) => INormalVNode | string | number;
+    pendingProps: IProps;
+    memoizedProps?: IProps;
+    renderTimes: number;
 }
 
 export interface INormalFiber extends ICommonFiber {
+    key: string | number | null;
     type: string;
+    pendingProps: IProps;
+    memoizedProps?: IProps;
 }
 
 export const isCompFiber = (fiber: IFiber): fiber is ICompFiber => fiber.isComp;

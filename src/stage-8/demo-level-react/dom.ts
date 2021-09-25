@@ -1,15 +1,51 @@
-import {INormalFiber, INormalVNode} from "./types";
+import { isNormalTextFiber, isTextFiber } from "./fiber";
+import {INormalFiber, IDom, INormalVNode, ITextFiber} from "./types";
 
-export const createDom = (vNode: INormalVNode | INormalFiber) => {
-    if (!vNode.type) return null;
-    const dom = document.createElement(vNode.type);
-    if (vNode.key !== undefined) {
-        console.log(`创建了${vNode.key}的dom: ${dom}`);
+export const createElement = (fiber: INormalFiber) => {
+    if (!fiber.type) {
+        throw new Error(`fiber上未检查到${fiber}type信息`)
     }
-    for (let attrKey in vNode.props) {
+    const dom = document.createElement(fiber.type);
+    if (fiber.key !== undefined) {
+        console.log(`创建了${fiber.key}的dom: ${dom}`);
+    }
+    for (let attrKey in fiber.pendingProps) {
         if (attrKey !== 'children' && !attrKey.startsWith('__')) {
-            dom.setAttribute(attrKey, vNode.props[attrKey]);
+            dom.setAttribute(attrKey, fiber.pendingProps[attrKey]);
         }
     }
+    // 如果只有text element一个child, 那么直接在这里创建innerHTML即可
+    if (isNormalTextFiber(fiber)) {
+        dom.innerHTML = fiber.pendingProps.children[0].toString();
+    } 
     return dom;
+}
+
+export const updateNormalTextElement = (newText: string, dom: Element) => {
+    console.log(`更新了normal text element: 新text: ${newText}`);
+    dom.innerHTML = newText;
+}
+
+export const createTextElement = (fiber: ITextFiber | string | number) => {
+    const val = typeof fiber === 'string' || typeof fiber === 'number' ? fiber.toString() : fiber.pendingProps.toString();
+    console.log(`创建了text element: ${val}`);
+    return document.createTextNode(val);
+}
+
+export const updateTextElement = (nodeValue: string, dom: Text) => {
+    console.log(`更新了text element: 新text: ${nodeValue}`);
+    dom.nodeValue = nodeValue;
+}
+
+export const moveAfter = (newNode: IDom | undefined, refNode: IDom | undefined, fatherNode: Element | null) => {
+    if (!newNode) return;
+    if (refNode) {
+        console.log(`节点${(newNode as Element).innerHTML}移动到了了: ${(refNode as Element).innerHTML}后面`);
+    }
+    if (refNode?.nextSibling) {
+        newNode && document.insertBefore(newNode, refNode.nextSibling);
+    }
+    else {
+        fatherNode && fatherNode.appendChild(newNode);
+    }
 }

@@ -1,16 +1,17 @@
-import { ICompFiber, IDom, IFiber,IVNode, isCompFiber, INormalFiber, IChild } from "./types";
-import {createFiberFromVNode, setFiberDom, generateNextFiber} from './fiber';
-import {createDom} from './dom';
-import {diff} from './diff';
+// import {cloneDeep} from 'lodash-es';
+import {ICompFiber, IDom, IFiber,IVNode, isCompFiber, INormalFiber, ITextFiber, EFlags} from "./types";
+import {createFiberFromVNode, generateNextFiber, isTextFiber, isNormalTextFiber, cloneFromOldFiber} from './fiber';
+import {createElement, createTextElement, updateTextElement, updateNormalTextElement, moveAfter} from './dom';
+import {reconcileChildrenArray} from './diff';
+import {resetCursor} from './hook';
+
 
 let currentFiber: IFiber | null = null;
 
 export const creatRoot = (conatiner: IDom) => {
     function render(vNode: IVNode) {
-        let wipRootFiber = { 
-            stateNode: conatiner,
-            ...vNode
-        } as IFiber;
+        const wipRootFiber = createFiberFromVNode(null, vNode);
+        wipRootFiber.stateNode = conatiner;
         update(wipRootFiber);
     }
     return {
@@ -25,60 +26,79 @@ const performUnitOfWork = (wipFiber: IFiber) => {
     isCompFiber(wipFiber) ? updateComp(wipFiber) : updateHost(wipFiber);
     return generateNextFiber(wipFiber);
 }
- 
+
+// 对于直接返回字符串的组件，每次直接patch dom即可
+const updateTextComp = (compFiber: ICompFiber, newText: string | number) => {
+    if (!compFiber.stateNode) {
+        compFiber.stateNode = createTextElement(newText);
+    }
+    else {
+        (compFiber.stateNode as Text).nodeValue = newText.toString();
+    }
+}
+
 const updateComp = (compFiber: ICompFiber) => {
     // type函数就是函数组件，执行函数组件时会执行内部的useState等钩子
     // useState等钩子内部会调用getCurrentFiber方法获取到此时设置的全局变量
     // 所以钩子函数内是这样每次调用前设置全局变量的方式获取到组件fiber的
     currentFiber = compFiber;
+    // 到了新组件，当然要重置组件内hook的指针
+    resetCursor();
     // 创建、更新组件子树无非两件事：1.所有hook函数走一遍 2.return的newVNodes会和oldFiber对比，也就是diff算法，力图找到最小的DOM操作来完成视图更新
-    const container = compFiber.type(compFiber.props),
-        children = container.props?.children;
-    setFiberDom(compFiber, container);
-    children && reconcileChildrenArray(compFiber, children);
+    const root = compFiber.type(compFiber.pendingProps);
+    if (typeof root === 'string' || typeof root === 'number') {
+        updateTextComp(compFiber, root);
+    }
+    else {
+        let newFiber;
+        // 组件的根是<></>的话，则直接reconcile children
+        if (!root.type) {
+            const newChildren = (root.props.children[0] as IVNode[]);
+            reconcileChildrenArray(compFiber, compFiber.alternate?.child || null, newChildren);
+            compFiber.alternate = compFiber;
+        }
+        else if (root.type === compFiber.alternate?.type) {
+            newFiber = cloneFromOldFiber(compFiber.alternate, root);
+            compFiber.child = newFiber;
+        }
+        else {
+            newFiber = createFiberFromVNode(compFiber, root);
+            compFiber.child = newFiber;
+        }
+    }
 };
 
-const reconcileChildrenArray = (fatherFiber: IFiber, newChildren: (IChild | IChild[])[]) => {
-    let flatNewChildren = newChildren.flat();
-    let resultingFirstChild: IFiber | null = null;
-    // 是首次渲染，走创建流程
-    if (!fatherFiber.child) {
-        let newIdx = 0;
-        let previousNewFiber = null;
-        for(; newIdx < flatNewChildren.length; newIdx++) {
-            const newFiber = createFiberFromVNode(fatherFiber, flatNewChildren[newIdx]);
-            console.log(newFiber, 'newFiber===');
-            if (!previousNewFiber) {
-                resultingFirstChild = newFiber;
-            } else {
-                previousNewFiber.sibling = newFiber;
-            }
-            previousNewFiber = newFiber;
+const updateHost = (nodeFiber: INormalFiber | ITextFiber) => {
+    // 如果当前fiber本身是text element的话，直接创建、更新即可无需reconcile
+    if (isTextFiber(nodeFiber) ) {
+        // 创建dom
+        if (!nodeFiber.stateNode) {
+            nodeFiber.stateNode = createTextElement(nodeFiber);
         }
-        fatherFiber.child = resultingFirstChild;
-        console.log(fatherFiber, 'fatherFiber===');
+        // 如果需要则更新text dom
+        if (nodeFiber.pendingProps !== nodeFiber.memoizedProps) {
+            updateTextElement(nodeFiber.pendingProps.toString(), nodeFiber.stateNode);
+        }
     }
-    // 是后续更新，走diff算法
+    // 如只有#text作为子元素的普通div标签
+    else if (isNormalTextFiber(nodeFiber)) {
+        // 创建dom
+        if (!nodeFiber.stateNode) {
+            nodeFiber.stateNode = createElement(nodeFiber);
+        }
+        // 如果需要则更新text dom
+        if (nodeFiber.pendingProps.children[0] !== nodeFiber.memoizedProps?.children[0]) {
+            updateNormalTextElement(nodeFiber.pendingProps.children[0].toString(), nodeFiber.stateNode);
+        }
+    }
+    // 嵌套了div的div，或者子元素包括#text和普通标签
     else {
-        diff(fatherFiber, fatherFiber.child, flatNewChildren);
+        if (!nodeFiber.stateNode) {
+            nodeFiber.stateNode = createElement(nodeFiber);
+        }
+        const children = nodeFiber.pendingProps.children;
+        children && reconcileChildrenArray(nodeFiber, nodeFiber.child || null, children as (IVNode | string | number)[]);
     }
-}
-
-const updateHost = (nodeFiber: INormalFiber) => {
-    nodeFiber.stateNode = createDom(nodeFiber);
-    // console.log(nodeFiber, 'nodeFiber===');
-    const children = nodeFiber.props.children;
-    // child是文本时，直接更新innerHTML即可
-    if (
-        children.length === 1
-        && (typeof children[0] === 'string' || typeof children[0] === 'number')
-        && nodeFiber.stateNode
-    ) {
-        const text = children[0];
-        nodeFiber.stateNode.innerHTML = text.toString();
-    }
-    // TODO: 有dom的children时，则要继续reconcile
-    // children && reconcileChildren(nodeFiber, children);
 };
 
 // setState时会调用update方法，我们知道钩子函数内是有着组件fiber的，所以调用update的时候会传入，这样就会更新组件子树了。
@@ -95,26 +115,31 @@ const getContaienr = (fiber: INormalFiber) => {
     return null;
 }
 
-const commitWork = (fiber: INormalFiber) => {
-    const container = getContaienr(fiber);
-    console.log(container, 'container===');
+const commitWork = (fiber: INormalFiber, lastFiber: IFiber | null) => {
+    if (fiber.flags === EFlags.PLACEMENT) {
+        const last = lastFiber?.stateNode;
+        const container = getContaienr(fiber) as Element | null;
+        moveAfter(fiber.stateNode, last, container)
+    }
     
-    container && fiber.stateNode && container.appendChild(fiber.stateNode);
 }
 
 const commit = (wipFiber: IFiber) => {
-    let curFiber: IFiber | null | undefined = wipFiber?.child;
+    let curFiber: IFiber | null | undefined = wipFiber?.child,
+        lastFiber: IFiber | null = null;
     while (curFiber) {
-        commitWork(curFiber as INormalFiber);
+        commitWork(curFiber as INormalFiber, lastFiber);
+        lastFiber = curFiber;
         curFiber = generateNextFiber(curFiber);
     };
 }
 
-const reconcile = (WIP: IFiber) => {
+export const reconcile = (WIP: IFiber) => {
     let nextUnitOfWork: IFiber | null = WIP;
-    while (nextUnitOfWork = performUnitOfWork(nextUnitOfWork)) {}
-    
+    while (nextUnitOfWork) {
+        nextUnitOfWork = performUnitOfWork(nextUnitOfWork)
+    }
     commit(WIP);
 }
 
-export const getCurrentFiber = () => currentFiber
+export const getCurrentFiber = () => currentFiber as ICompFiber;

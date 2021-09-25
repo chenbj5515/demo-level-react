@@ -1,20 +1,24 @@
+import { cloneDeep } from "lodash-es";
+
 import { IVNode, IFiber, EFlags} from "./types";
-import {createFiberFromVNode, cloneFromOldFiber} from './fiber';
+import {createFiberFromVNode, cloneFromOldFiber, isTextFiber} from './fiber';
 import { exist } from "./helpers";
 
-const canReuse = (fiber: IFiber, vNode: IVNode) => fiber.key === vNode.key && fiber.type === vNode.type;
+export const canReuse = (fiber: IFiber, vNode: IVNode) => fiber.key === vNode.key && fiber.type === vNode.type;
 
 const placeChild = (newFiber: IFiber, lastPlacedIndex: number, newIdx: number) => {
     newFiber.idx = newIdx;
     const current = newFiber.alternate;
     if (current) {
         const oldIdx = current.idx;
+        
         if (oldIdx! < lastPlacedIndex) {
             newFiber.flags = EFlags.PLACEMENT;
             // This is a move.
             return lastPlacedIndex;
         }
         else {
+            newFiber.flags = EFlags.NO_FLAG;
             // This item can stay in place.
             return oldIdx!;
         }
@@ -26,7 +30,7 @@ const placeChild = (newFiber: IFiber, lastPlacedIndex: number, newIdx: number) =
 }
 
 const mapRemainingChildren = (oldFiber: IFiber) => {
-    const map: Map<React.Key, IFiber> = new Map();
+    const map: Map<string | number, IFiber> = new Map();
     let curFiber: IFiber | null = oldFiber;
     while (curFiber) {
         if (curFiber.key !== null) {
@@ -68,11 +72,15 @@ const updateFromMap = (
 const updateSlot = (
     fatherFiber: IFiber,
     oldFiber: IFiber,
-    newChild: IVNode | number | string
+    newChild: IVNode | number | string,
 ) => {
     let newFiber = null;
     if (isTextChild(newChild)) {
-        newFiber = createFiberFromVNode(fatherFiber, newChild);
+        if (isTextFiber(oldFiber)) {
+            newFiber = cloneFromOldFiber(oldFiber, newChild);
+        } else {
+            newFiber = createFiberFromVNode(fatherFiber, newChild);
+        }
     }
     else if (canReuse(oldFiber, newChild)) {
         newFiber = cloneFromOldFiber(oldFiber, newChild);
@@ -80,7 +88,7 @@ const updateSlot = (
     return newFiber;
 }
 
-export const diff = (fatherFiber: IFiber, oldFirstChild: IFiber, newChildren: (IVNode | string | number)[]) => {
+export const reconcileChildrenArray = (fatherFiber: IFiber, oldFirstChild: IFiber | null, newChildren: (IVNode | string | number)[]) => {
     let newIdx = 0,
         oldFiber: IFiber | null = oldFirstChild,
         newFirstChild: IFiber | null = null,
@@ -91,9 +99,11 @@ export const diff = (fatherFiber: IFiber, oldFirstChild: IFiber, newChildren: (I
     for (; oldFiber !== null && newIdx < newChildren.length; newIdx++) {
         let newNode = newChildren[newIdx];
         const newFiber = updateSlot(fatherFiber, oldFiber, newNode)
+        
         // 能复用的话就继续逐个比对，直到新旧某个遍历完毕
         if (newFiber) {
-            if (previousNewFiber) {
+            newFiber.idx = newIdx;
+            if (!previousNewFiber) {
                 // 只有首次才为null，首个newFiber用newFirstChild标记
                 newFirstChild = newFiber;
             }
@@ -109,12 +119,13 @@ export const diff = (fatherFiber: IFiber, oldFirstChild: IFiber, newChildren: (I
             break;
         }
     }
-
     // 如果没有旧节点了，那只需新节点如有剩余，就都创建新的fiber并插入即可。
     if (!oldFiber) {
-        for(;newIdx > newChildren.length; newIdx++) {
+        for(;newIdx < newChildren.length; newIdx++) {
             const newFiber = createFiberFromVNode(fatherFiber, newChildren[newIdx]);
+            newFiber.idx = newIdx;
             lastPlacedIndex = placeChild(newFiber, lastPlacedIndex, newIdx);
+            
             if (!previousNewFiber) {
                 newFirstChild = newFiber;
             } else {
@@ -129,11 +140,13 @@ export const diff = (fatherFiber: IFiber, oldFirstChild: IFiber, newChildren: (I
         // 遍历剩余新节点，从map中找到可复用的旧节点进行复用
         for (; newIdx < newChildren.length; newIdx++) {
             const newFiber = updateFromMap(existingKeyFiberMap, fatherFiber, newChildren[newIdx]);
+            newFiber.idx = newIdx;
             // 如果newFiber是复用了旧节点，那么就要就可以从map里删掉了，缩短从map找其他newChild的oldFiber的时间
-            if (newFiber.alternate) {
+            if (newFiber.alternate && newFiber.key !== null) {
                 existingKeyFiberMap.delete(newFiber.key);
             }
             lastPlacedIndex = placeChild(newFiber, lastPlacedIndex, newIdx);
+            
             if (!previousNewFiber) {
                 newFirstChild = newFiber;
             } else {
@@ -143,4 +156,8 @@ export const diff = (fatherFiber: IFiber, oldFirstChild: IFiber, newChildren: (I
         }
         existingKeyFiberMap.forEach(oldFiber => dedelteChild(fatherFiber, oldFiber));
     }
+    
+    
+    // 更新child为本次生成的new fiber
+    fatherFiber.child = newFirstChild;
 }
