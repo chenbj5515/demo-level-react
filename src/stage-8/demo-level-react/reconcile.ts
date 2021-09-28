@@ -125,8 +125,10 @@ const commitWork = (fiber: INormalFiber, lastFiber: IFiber | null) => {
 }
 
 const commit = (wipFiber: IFiber) => {
+    console.log(wipFiber);
+    
     // 提交阶段执行effect
-    isCompFiber(wipFiber) && (wipFiber.effect());
+    isCompFiber(wipFiber) && (wipFiber.effect?.());
     let curFiber: IFiber | null | undefined = wipFiber?.child,
         lastFiber: IFiber | null = null;
     while (curFiber) {

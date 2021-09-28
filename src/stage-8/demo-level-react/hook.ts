@@ -46,8 +46,8 @@ export const useState = <T>(initialState: T) => {
     const getState = () => hook ? hook.state : initialState;
     const result: [T, ((transformer: ITransformer<T>) => void)] = [
         getState(),
-        (transformer: ITransformer<T>) => {
-            hook.state = transformer(getState());
+        (transformer: ITransformer<T> | T) => {
+            hook.state = typeof transformer === 'function' ? (transformer as Function)(getState()) : transformer;
             compFiber.renderTimes++;
             reconcile(compFiber);
         }
@@ -75,8 +75,30 @@ export const useEffect = (effect: any, deps: any[]) => {
     }
 }
 
-export const useReducer = () => {
+type Reducer<S, A> = (prevState: S, action: A) => S;
+type ReducerState<R extends Reducer<any, any>> = R extends Reducer<infer S, any> ? S : never;
+type ReducerAction<R extends Reducer<any, any>> = R extends Reducer<any, infer A> ? A : never;
+type Dispatch<A> = (value: A) => void;
 
+export const useReducer = <R extends Reducer<any, any>>(reducer: R, initialState: ReducerState<R>) => {
+        const compFiber = getCurrentFiber();
+        if (!compFiber) throw new Error('hook获取组件fiber失败');
+        const newHook = {
+            state: typeof initialState === 'undefined' ? null : initialState,
+            next: null
+        }
+        let hook = getHook(compFiber, newHook) as IStateHook<ReducerState<R>>;
+        
+        const getState = () => hook ? hook.state : initialState;
+        const result: [ReducerState<R>, Dispatch<ReducerAction<R>>] = [
+            getState(),
+            (action: ReducerAction<R>) => {
+                hook.state = reducer(getState(), action);
+                compFiber.renderTimes++;
+                reconcile(compFiber);
+            }
+        ];
+        return result;
 }
 
 export const useRef = <T>(initialValue?: T) => {

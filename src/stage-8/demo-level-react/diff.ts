@@ -89,6 +89,8 @@ const updateSlot = (
 }
 
 export const reconcileChildrenArray = (fatherFiber: IFiber, oldFirstChild: IFiber | null, newChildren: (IVNode | string | number)[]) => {
+    console.log(newChildren, 'newChildren==');
+    
     let newIdx = 0,
         oldFiber: IFiber | null = oldFirstChild,
         newFirstChild: IFiber | null = null,
@@ -122,6 +124,7 @@ export const reconcileChildrenArray = (fatherFiber: IFiber, oldFirstChild: IFibe
     // 如果没有旧节点了，那只需新节点如有剩余，就都创建新的fiber并插入即可。
     if (!oldFiber) {
         for(;newIdx < newChildren.length; newIdx++) {
+            if (!newChildren[newIdx]) break;
             const newFiber = createFiberFromVNode(fatherFiber, newChildren[newIdx]);
             newFiber.idx = newIdx;
             lastPlacedIndex = placeChild(newFiber, lastPlacedIndex, newIdx);
