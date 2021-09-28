@@ -40,18 +40,27 @@ export type IDom = Element | Text | null;
 
 export type TAction<T> = (state: T) => T;
 
-export interface IState {
-    state: any;
-    next: IHook;
+export interface IStateHook<T> {
+    state: T;
+    next: IHook<T>;
 }
 
-export interface IEffect {
+export interface IEffectHook {
     effect: Function;
     deps: any[];
-    next: IHook;
+    next: IHook<any>;
 }
 
-export type IHook = IState | IEffect | null;
+export interface IRef<T> {
+    current: T | null;
+}
+
+export interface IRefHook<T> {
+    ref: IRef<T>;
+    next: IHook<T>;
+}
+
+export type IHook<T> = IStateHook<T> | IEffectHook | IRefHook<T> |null;
 
 interface ICommonFiber {
     isComp: boolean;
@@ -63,7 +72,7 @@ interface ICommonFiber {
     flags: EFlags;
     idx?: number;
     key: string | number | null;
-    hooks?: IHook;
+    hooks?: IHook<any>;
     renderTimes?: number | null;
 }
 
@@ -98,6 +107,7 @@ export interface ICompFiber extends ICommonFiber {
     pendingProps: IProps;
     memoizedProps?: IProps;
     renderTimes: number;
+    effect: Function;
 }
 
 export interface INormalFiber extends ICommonFiber {

@@ -46,6 +46,7 @@ const updateComp = (compFiber: ICompFiber) => {
     resetCursor();
     // 创建、更新组件子树无非两件事：1.所有hook函数走一遍 2.return的newVNodes会和oldFiber对比，也就是diff算法，力图找到最小的DOM操作来完成视图更新
     const root = compFiber.type(compFiber.pendingProps);
+    
     if (typeof root === 'string' || typeof root === 'number') {
         updateTextComp(compFiber, root);
     }
@@ -53,7 +54,7 @@ const updateComp = (compFiber: ICompFiber) => {
         let newFiber;
         // 组件的根是<></>的话，则直接reconcile children
         if (!root.type) {
-            const newChildren = (root.props.children[0] as IVNode[]);
+            const newChildren = (root.props.children as IVNode[]);
             reconcileChildrenArray(compFiber, compFiber.alternate?.child || null, newChildren);
             compFiber.alternate = compFiber;
         }
@@ -121,10 +122,11 @@ const commitWork = (fiber: INormalFiber, lastFiber: IFiber | null) => {
         const container = getContaienr(fiber) as Element | null;
         moveAfter(fiber.stateNode, last, container)
     }
-    
 }
 
 const commit = (wipFiber: IFiber) => {
+    // 提交阶段执行effect
+    isCompFiber(wipFiber) && (wipFiber.effect());
     let curFiber: IFiber | null | undefined = wipFiber?.child,
         lastFiber: IFiber | null = null;
     while (curFiber) {
@@ -136,6 +138,7 @@ const commit = (wipFiber: IFiber) => {
 
 export const reconcile = (WIP: IFiber) => {
     let nextUnitOfWork: IFiber | null = WIP;
+    
     while (nextUnitOfWork) {
         nextUnitOfWork = performUnitOfWork(nextUnitOfWork)
     }
