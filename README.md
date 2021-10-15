@@ -27,8 +27,9 @@ JSX可以分为两种：1.组件jsx 2.普通的element jsx。<br>
 组件jsx最常见的就是项目根目录里的`<App />`;<br>
 普通的element jsx就是`<div id="foo"></div>`这种啦;
 ## jsx的生命周期
-先看图：jsx -> 函数调用 -> vNode<br>
-jsx是怎么变成函数调用的呢？<br>
+最简洁的表示：jsx -> 函数调用 -> vNode<br>
+下面一个一个问题地阐述：
+### jsx是怎么变成函数调用的呢？
 首先我们的代码都是会经过babel转译的，React的项目中，babel都会配置一个转译jsx插件，这个插件会把我们代码的中jsx都转化为函数调用：
 
 ```
@@ -56,15 +57,16 @@ React.createElement(
   )
 )
 ```
-我们先分析下这个函数调用的转化，其实无外乎两个事，函数本身和函数的参数。<br>
+### 如何转化为函数调用的？
 首先阐述转化成的函数是什么的问题，babel会默认转化为React.createElement这个React的内置函数<br>
 至于参数，也是babel根据用户书写的jsx通过AST分析获得的，规律大概就是标签名作为第一个参数，所有属性转译成对象作为第二个参数，所有的child以剩余参数的形式进行递归调用。<br>
-还有两点需要注意：<br>
-1. 我们之前不是说了jsx还有组件jsx吗？那`<App />`这种的第一个参数是什么呢？<br>
+### 组件jsx的type是怎样的？
+我们之前不是说了jsx还有组件jsx吗？那`<App />`这种的第一个参数是什么呢？
 这个答案很简单但很重要，这时第一个参数会变成组件函数本身而不再是标签名了。<br>
-好了，函数是什么以及函数的参数我们捋清楚了，那么函数体是怎样的呢？<br>
+### createElement函数体是怎样的呢？
 实际上，函数体很简单，仅仅将收到的参数整合成一个对象并返回，返回的这个对象就是vNode:
-2. 对于text element如这个“bar”，不会再开启函数调用把结果作为参数传入，而是直接传入了文本字符串
+### 当遇到Text Element时，babel会如何处理？
+对于text element如这个“bar”，不会再开启函数调用把结果作为参数传入，而是直接传入了文本字符串
 ```
 // 最终变为vNode树
 {
@@ -97,7 +99,7 @@ React.createElement(
 }
 ```
 具体的代码见stage-0，你可以自己跑起来看看jsx的转译结果。<br>
-通常来说，我们项目是通过@babel/preset-react这个插件合集来引入了babel用来转译jsx的包，实际上babel会默认转译为React.createElement这个函数调用而不是我们上面示例中写的createVNode这个函数，这也是为什么我们一个tsx文件明明没有显示用到React，但是确必须引入的原因。
+另外，我们项目是通过@babel/preset-react这个插件合集来引入了babel用来转译jsx的包，实际上babel会默认转译为React.createElement这个函数调用而不是我们上面示例中写的createVNode这个函数，这也是为什么我们一个tsx文件明明没有显示用到React，但是确必须引入的原因。
 
 不过babel提供了通过注释的方式更改调用的函数名字的机制
 
@@ -114,24 +116,17 @@ const element = (
 )
 ```
 
-# 把vNode树render为真实DOM
-vNode树是我们执行完渲染函数就有的，把vNode初次渲染为DOM仅仅是一个遍历创建DOM的过程，略过不表。（stage-1）<br>
+# 从vNode到fiber
 
-## 时间切片
-我们重点说下stage-2，stage-2中我们没有像老版本React那样全量创建、更新整个vNode树，因为每次都全量，尤其是首次全量创建的过程的会占用JS的单线程，有的场景下会有性能问题。
-所以我们会像新版本React那样进行时间切片，每次渲染都会一个一个地将vNode树上的节点转为一个Fiber，如果浏览器有高优任务则把执行权交给浏览器，空闲了再继续转化vNode树上剩余的节点。
+## vNode和fiber的联系与不同？
+vNode和fiber都是一个描述UI的树结构的对象，那么为什么有了vNode还需要fiber，它们的区别在哪里呢？<br>
+首先vNode这颗树上的UI信息是不全的。比如我们项目中的App是入口，我们的业务jsx都是在App的后代函数里。但是我们这些业务jsx对应的vNode是在根上看不到的，因为这些信息是App组件函数的返回结果，而组件函数是根vNode的type的值。这意味着什么？意味着如果不执行这个type函数，就拿不到整颗树上的后代。<br>
+到这里我们可以得出一个结论，React语境下，vNode树仅仅是某个子树，fiber树才是整个应用的树。
 
 ## fiber的结构
-### 关系属性
-一个Fiber的结构和vNode类似，只不过每个fiber会维护parent, sibling和child三个亲属fiber，用于遍历树，如图：
+每个fiber会维护parent, sibling和child三个亲属fiber，用于遍历树，如图：
 ![alt fiber-tree](./src/diagram/fiber-tree.png)
 这三个属性的获取当然是通过遍历vNode来的。
-
-### effectTag
-另外，fiber上还会带有如何更新DOM的信息.<br>
-简单地说，如果树上的等位节点都是div标签，那么fiber上就会带有UPDATE的tag,最终更新DOM时会保留原有DOM，仅会更新属性和事件.<br>
-如果等位上不存在旧fiber，那么就会给fiber打上PLACEMENT的tag，最终会创建新的DOM.<br>
-而如果等位上存在老的没有新的fiber, 那么就会给老的fiber打上DELETE的tag, 最终会删除这个DOM.<br>
 
 ## fiber的遍历
 fiber的遍历顺序看图就明白了, 用语言描述的话就是先return child，到底了就return sibling，没有sibling了就先找到parent后找return parent的sibling，直到parent也没有了就return null结束。

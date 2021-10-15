@@ -39,3 +39,5 @@ const element = (
         <b />
     </div>
 )
+
+console.log(<App />);
