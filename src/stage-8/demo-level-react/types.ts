@@ -17,7 +17,8 @@ export interface IDOMProps {
 */
 export interface IProps {
     [key: string]: any;
-    children: (IVNode | string | number)[] | (IVNode | string | number)[][];
+    children: (IVNode | string | number)[];
+    // children: (IVNode | string | number)[] | (IVNode | string | number)[][];
 }
 
 interface ICommonVNode {

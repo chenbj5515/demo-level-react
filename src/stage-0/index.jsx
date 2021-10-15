@@ -18,7 +18,7 @@ const createTextElement = text => ({
     }
 })
 
-const Didact = {
+const React = {
     createElement
 }
 
@@ -31,7 +31,6 @@ function App() {
     )
 }
 
-/** @jsx Didact.createElement */
 const element = (
     <div id="foo">
         <App />
@@ -40,4 +39,18 @@ const element = (
     </div>
 )
 
-console.log(<App />);
+const list = [
+    {
+        type: 'div',
+        key: 'A',
+        text: 'A',
+    },
+    {type: 'div', key: 'D', text: 'D'},
+    {type: 'div', key: 'C', text: 'C'}
+];
+
+console.log(
+    <App>A
+        <div>s</div>
+    </App>
+);

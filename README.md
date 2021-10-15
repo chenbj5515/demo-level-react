@@ -116,6 +116,14 @@ const element = (
 )
 ```
 
+# vNode
+
+## vNode分类
+之前说的jsx分为两类，而vNode分为三类：
+1. 普通的vNode，就是普通的标签，如div标签.特征就是type为标签名
+2. 纯文本，如上面例子中a标签中的文本bar.可以看到它是普通jsx的子元素.特征是type为特殊标识TEXT_ELEMENT
+3. 函数的vNode，就是函数jsx转化成的vNode.特征是type为组件函数
+
 # 从vNode到fiber
 
 ## vNode和fiber的联系与不同？
@@ -127,6 +135,10 @@ vNode和fiber都是一个描述UI的树结构的对象，那么为什么有了vN
 每个fiber会维护parent, sibling和child三个亲属fiber，用于遍历树，如图：
 ![alt fiber-tree](./src/diagram/fiber-tree.png)
 这三个属性的获取当然是通过遍历vNode来的。
+
+## fiber树的建立
+fiber的结构知道了，但是fiber树是如何建立起来的呢？
+我们之前说了，vNode分为
 
 ## fiber的遍历
 fiber的遍历顺序看图就明白了, 用语言描述的话就是先return child，到底了就return sibling，没有sibling了就先找到parent后找return parent的sibling，直到parent也没有了就return null结束。
