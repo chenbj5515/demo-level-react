@@ -20,9 +20,18 @@
 - [ ]  加上调度机制
 - [ ]  加上事件系统
 
-# 从JSX到vNode
+# 一切的源头——JSX
+JSX是我们开发者给React最主要的输入。
+## jsx的分类
+JSX可以分为两种：1.组件jsx 2.普通的element jsx。<br>
+组件jsx最常见的就是项目根目录里的`<App />`;<br>
+普通的element jsx就是`<div id="foo"></div>`这种啦;
+## jsx的生命周期
+先看图：jsx -> 函数调用 -> vNode<br>
+jsx是怎么变成函数调用的呢？<br>
+首先我们的代码都是会经过babel转译的，React的项目中，babel都会配置一个转译jsx插件，这个插件会把我们代码的中jsx都转化为函数调用：
 
-```tsx
+```
 // jsx
 <div id="foo">
   <a>bar</a>
@@ -32,22 +41,30 @@
 
 ```
 // 经过babel处理变为函数调用
-DemoLevelReact.createVNode(
+React.createElement(
   'div',
   {id: 'foo'},
-  DemoLevelReact.createVNode(
+  React.createElement(
     'a',
     null,
     'bar'
   ),
-  DemoLevelReact.createVNode(
+  React.createElement(
     'b',
     null,
     null
   )
 )
 ```
-
+我们先分析下这个函数调用的转化，其实无外乎两个事，函数本身和函数的参数。<br>
+首先阐述转化成的函数是什么的问题，babel会默认转化为React.createElement这个React的内置函数<br>
+至于参数，也是babel根据用户书写的jsx通过AST分析获得的，规律大概就是标签名作为第一个参数，所有属性转译成对象作为第二个参数，所有的child以剩余参数的形式进行递归调用。<br>
+还有两点需要注意：<br>
+1. 我们之前不是说了jsx还有组件jsx吗？那`<App />`这种的第一个参数是什么呢？<br>
+这个答案很简单但很重要，这时第一个参数会变成组件函数本身而不再是标签名了。<br>
+好了，函数是什么以及函数的参数我们捋清楚了，那么函数体是怎样的呢？<br>
+实际上，函数体很简单，仅仅将收到的参数整合成一个对象并返回，返回的这个对象就是vNode:
+2. 对于text element如这个“bar”，不会再开启函数调用把结果作为参数传入，而是直接传入了文本字符串
 ```
 // 最终变为vNode树
 {
@@ -79,7 +96,7 @@ DemoLevelReact.createVNode(
   }
 }
 ```
-
+具体的代码见stage-0，你可以自己跑起来看看jsx的转译结果。<br>
 通常来说，我们项目是通过@babel/preset-react这个插件合集来引入了babel用来转译jsx的包，实际上babel会默认转译为React.createElement这个函数调用而不是我们上面示例中写的createVNode这个函数，这也是为什么我们一个tsx文件明明没有显示用到React，但是确必须引入的原因。
 
 不过babel提供了通过注释的方式更改调用的函数名字的机制
