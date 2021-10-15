@@ -59,12 +59,12 @@ React.createElement(
 ```
 ### 如何转化为函数调用的？
 首先阐述转化成的函数是什么的问题，babel会默认转化为React.createElement这个React的内置函数<br>
-至于参数，也是babel根据用户书写的jsx通过AST分析获得的，规律大概就是标签名作为第一个参数，所有属性转译成对象作为第二个参数，所有的child以剩余参数的形式进行递归调用。<br>
+至于参数，也是babel根据用户书写的jsx通过AST分析获得的，规律大概就是标签名作为第一个参数，所有属性转译成对象作为第二个参数，所有的child以剩余参数的形式进行递归调用。如上图<br>
 ### 组件jsx的type是怎样的？
 我们之前不是说了jsx还有组件jsx吗？那`<App />`这种的第一个参数是什么呢？
 这个答案很简单但很重要，这时第一个参数会变成组件函数本身而不再是标签名了。<br>
 ### createElement函数体是怎样的呢？
-实际上，函数体很简单，仅仅将收到的参数整合成一个对象并返回，返回的这个对象就是vNode:
+实际上，函数体很简单，仅仅将收到的参数整合成一个对象并返回，返回的这个对象就是vNode。只不过需要注意的是，转化函数实际上一共有会生成三种可能的vNode，下面在vNode章节会详细阐述这三种vNode。
 ### 当遇到Text Element时，babel会如何处理？
 对于text element如这个“bar”，不会再开启函数调用把结果作为参数传入，而是直接传入了文本字符串
 ```
@@ -128,7 +128,7 @@ const element = (
 
 ## vNode和fiber的联系与不同？
 vNode和fiber都是一个描述UI的树结构的对象，那么为什么有了vNode还需要fiber，它们的区别在哪里呢？<br>
-首先vNode这颗树上的UI信息是不全的。比如我们项目中的App是入口，我们的业务jsx都是在App的后代函数里。但是我们这些业务jsx对应的vNode是在根上看不到的，因为这些信息是App组件函数的返回结果，而组件函数是根vNode的type的值。这意味着什么？意味着如果不执行这个type函数，就拿不到整颗树上的后代。<br>
+首先vNode这颗树上的UI信息是不全的。比如我们项目中的App是入口，我们的业务jsx都是在App的后代函数里。但是我们这些业务jsx对应的vNode是在根vNode上是没有的，因为这些信息是App组件函数的返回结果，而组件函数是根vNode的type的值。这意味着什么？意味着如果不执行这个type函数，根vNode上就拿不到整颗树上的所有后代。<br>
 到这里我们可以得出一个结论，React语境下，vNode树仅仅是某个子树，fiber树才是整个应用的树。
 
 ## fiber的结构
@@ -136,9 +136,12 @@ vNode和fiber都是一个描述UI的树结构的对象，那么为什么有了vN
 ![alt fiber-tree](./src/diagram/fiber-tree.png)
 这三个属性的获取当然是通过遍历vNode来的。
 
-## fiber树的建立
-fiber的结构知道了，但是fiber树是如何建立起来的呢？
-我们之前说了，vNode分为
+## fiber的分类
+我们之前说了，vNode分为三类（普通标签，纯文本和组件），那么fiber分几类呢？我把fiber分为四类：
+1. 组件fiber，和组件vNode对应
+2. 纯文本fiber，和纯文本vNode对应
+3. 子元素是纯文本的fiber，对应这种vNode: `<div>hello world!</div>`
+4. 子元素不只是纯文本的普通fiber：`<div id="foo"><a>bar</a><b /></div>`
 
 ## fiber的遍历
 fiber的遍历顺序看图就明白了, 用语言描述的话就是先return child，到底了就return sibling，没有sibling了就先找到parent后找return parent的sibling，直到parent也没有了就return null结束。
