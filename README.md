@@ -141,7 +141,21 @@ vNode和fiber都是一个描述UI的树结构的对象，那么为什么有了vN
 1. 组件fiber，和组件vNode对应
 2. 纯文本fiber，和纯文本vNode对应
 3. 子元素是纯文本的fiber，对应这种vNode: `<div>hello world!</div>`
-4. 子元素不只是纯文本的普通fiber：`<div id="foo"><a>bar</a><b /></div>`
+4. 子元素不只是纯文本的普通fiber：`<div id="foo"><a>bar</a><b /></div>`、
+
+## fiber的建立
+这个小节我们梳理下首次创建过程中fiber树的建立：<br>
+```
+const App = () => (
+  <div id="foo">
+      <a>bar</a>
+      <b />
+  </div>
+)
+```
+fiber当然是根据vNode建立的，在初始时我们仅有`<App />`对应的vNode，我们根据这个vNode，创建了组件fiber，然后执行type函数，得到了组件函数的返回的jsx转译成的vNode，这个vNode通常来说是一个普通的vNode(也有可能是fragment或纯文本)。<br>
+我们把再基于vNode创建对应类型的fiber，然后把newFiber作为App组件fiber的child.<br>
+这一步我们就可以继续处理这个child fiber，
 
 ## fiber的遍历
 fiber的遍历顺序看图就明白了, 用语言描述的话就是先return child，到底了就return sibling，没有sibling了就先找到parent后找return parent的sibling，直到parent也没有了就return null结束。
