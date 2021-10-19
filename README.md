@@ -144,7 +144,7 @@ vNode和fiber都是一个描述UI的树结构的对象，那么为什么有了vN
 4. 子元素不只是纯文本的普通fiber：`<div id="foo"><a>bar</a><b /></div>`、
 
 ## fiber的建立
-这个小节我们梳理下首次创建过程中fiber树的建立：<br>
+这个小节我们已下面代码为例梳理下首次创建过程中fiber树的建立：<br>
 ```
 const App = () => (
   <div id="foo">
@@ -153,9 +153,9 @@ const App = () => (
   </div>
 )
 ```
-fiber当然是根据vNode建立的，在初始时我们仅有`<App />`对应的vNode，我们根据这个vNode，创建了组件fiber，然后执行type函数，得到了组件函数的返回的jsx转译成的vNode，这个vNode通常来说是一个普通的vNode(也有可能是fragment或纯文本)。<br>
+fiber当然是根据vNode建立的，在初始时我们仅有`<App />`对应的vNode，我们根据这个vNode，创建了组件fiber，然后执行type函数，得到了组件函数的返回的jsx转译成的vNode，这个vNode通常来说和例子一样是一个普通的vNode(也有可能是fragment或纯文本)。<br>
 我们把再基于vNode创建对应类型的fiber，然后把newFiber作为App组件fiber的child.<br>
-这一步我们就可以继续处理这个child fiber，
+这一步我们就可以继续处理这个child fiber(即id为foo的div标签对应的fiber)，它的children的第一项是a标签，
 
 ## fiber的遍历
 fiber的遍历顺序看图就明白了, 用语言描述的话就是先return child，到底了就return sibling，没有sibling了就先找到parent后找return parent的sibling，直到parent也没有了就return null结束。
