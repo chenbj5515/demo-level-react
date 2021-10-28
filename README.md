@@ -9,8 +9,8 @@
 1. 我觉得从别人的极简React代码或自己写一个极简的React是最快的学习React的方式
 2. 社区中有不少类似的内容，但我没有找到完全满足我需求的<br>
 a. Rodrigo Pombo的[build my own react](https://pomb.us/build-your-own-react/)非常棒，但是内容还是太少了。比如hook的实现不完整，也没有很重要的diff算法、事件系统等。<br>
-b. [fre](https://github.com/yisar/fre)这个项目完成度很高，不过它是类React的框架而不是极简的React。说白了就是魔改了太多React的东西，而我想要的是尽可能地掌控React，从而可以避免写bug，快速debug，写出性能更佳，符合React理念的代码——而不是造一个玩具，即使那很酷。<br>
-
+b. [fre](https://github.com/yisar/fre)这个项目完成度很高，不过它是类React的框架而不是极简的React。它不是做减法，而是在React的基础上玩自己的想法。而我想要的是尽可能地掌控React，从而可以避免写bug，快速debug，写出性能更佳，符合React理念的代码——而不是造一个玩具，即使那很酷。<br>
+c. 还看过一个仓库，里面把React的大部分源码基本直接搬过来，加注释然后跑起来。这样的话对我而言理解效率还是太低了，毕竟作为最主流的用于生产页面的框架，里面有太多不重要的代码细节了。
 
 我们的目标：
 
