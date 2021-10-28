@@ -185,7 +185,7 @@ a. 在首次创建时，所有的fiber都会被打上PLACEMENT的标签。<br>
 b. 而我们最终在创建完fiber树后会遍历一遍fiber树，把所有带有PLACEMENT标签的fiber的DOM都作为其父元素的最后一个child（即appendChild操作）
 
 ## fiber的flags属性
-上面提到了创建过程中所有fiber都会被打上PLACEMENT标签，这决定了最终提交阶段fiber的DOM会被如何操作。这个打标签从代码上来说就是fiber的flags属性被设置为PLACEMENT这个语义对应的数字。而实际上，flags还有其他可能值，我们将在下面讲到。
+上面提到了创建过程中所有fiber都会被打上PLACEMENT标签，这决定了最终提交阶段fiber的DOM会被如何操作。这个打标签从代码上来说就是fiber的flags属性被设置为PLACEMENT这个语义对应的数字。而实际上，PLACEMENT是双重语义，它不仅仅是创建，还可以代表移动。而flags也还有其他的可能值。这些我们下面会讲到。
 
 ## fiber树的更新
 上面已经论述了如何创建一个fiber树并最终转为真实的DOM，下面说下fiber树的更新。
