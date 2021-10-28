@@ -2,12 +2,15 @@
 
 # 前言
 
-这个仓库(https://github.com/chenbj5515/demo-level-react)
-中我们会一步一步实现一个demo级的React，这个仓库的目的是为了帮助自己和他人在代码程度上理解React中的各个常见概念如vNode,fiber, diff等，而不用去阅读源码（因为那里有太多不重要信息，适合对概念有了充足的了解后再去印证）<br>
-社区中已经有很多类似的东西，比较有代表性的是Rodrigo Pombo的[这篇文章](https://pomb.us/build-your-own-react/)，还有[fre](https://github.com/yisar/fre)这个项目。<br>
-之所以用“东西”这么个笼统的词汇来描述它们，是因为它们是不太一样的。一句话来说，前者的原则是简化React的实现，而后者是简化并改编React的实现。类fre的项目都存在着主观改造React的行为，这其实是我不太喜欢的，不是说这样不好，而是这样的改编实际上收益者非常有限，可能仅仅是大厂的架构组要自己重复造轮子的那些人可以得到一些启发。<br>
-而大多数人其实需要的是对React更加精细的掌控，能够避免写出bug，快速debug，写出性能更佳、符合React理念的代码。而做到这一点，我们只能为了更好的理解而简化React，而不该去魔改React的实现，这会对了解程度低的学习者造成误导。<br>
-所以我写了这个项目，它和上文提到的Rodrigo Pombo的文章的原则是一致的，但是内容更加丰富和靠近React的实现。比如我完全基于React源码实现了Rodrigo Pombo的代码中没有写的diff算法。我的项目中Hooks的实现也是更加全并且贴合React的。后续我还打算增加贴合React的事件系统以及调度系统。
+## What
+一个极简版的React，为了帮助自己和他人从代码层面上理解React，而不用花大量时间去翻阅React源码。
+
+## Why
+1. 我觉得从别人的极简React代码或自己写一个极简的React是最快的学习React的方式
+2. 社区中有不少类似的内容，但我没有找到完全满足我需求的<br>
+a. Rodrigo Pombo的[build my own react](https://pomb.us/build-your-own-react/)非常棒，但是内容还是太少了。比如hook的实现不完整，也没有很重要的diff算法、事件系统等。<br>
+b. [fre](https://github.com/yisar/fre)这个项目完成度很高，不过它是类React的框架而不是极简的React。说白了就是魔改了太多React的东西，而我想要的是尽可能地掌控React，从而可以避免写bug，快速debug，写出性能更佳，符合React理念的代码——而不是造一个玩具，即使那很酷。<br>
+
 
 我们的目标：
 
