@@ -183,3 +183,47 @@ fiber当然是根据vNode建立的，在初始时我们仅有`<App />`对应的v
 2. 把DOM关联到DOM树上。
 a. 在首次创建时，所有的fiber都会被打上PLACEMENT的标签。<br>
 b. 而我们最终在创建完fiber树后会遍历一遍fiber树，把所有带有PLACEMENT标签的fiber的DOM都作为其父元素的最后一个child（即appendChild操作）
+
+## fiber的flags属性
+上面提到了创建过程中所有fiber都会被打上PLACEMENT标签，这决定了最终提交阶段fiber的DOM会被如何操作。这个打标签从代码上来说就是fiber的flags属性被设置为PLACEMENT这个语义对应的数字。而实际上，flags还有其他可能值，我们将在下面讲到。
+
+## fiber树的更新
+上面已经论述了如何创建一个fiber树并最终转为真实的DOM，下面说下fiber树的更新。
+### 如何触发fiber树的更新？
+我们在函数式组件中，通过useState/useReducer两个函数返回的setState/dispatch来实现更新操作。<br>
+开发者关心的更新其实是dom更新、state更新和effect的执行这些，而这一切的前提都是fiber树的更新。<br>
+首先我们首次创建时，整个应用的fiber树建立后会一直在内存中保存着。而setState/dispatch更新的是函数式组件对应的fiber子树。<br>
+我们知道函数组件对应着一个fiber，而函数组件本身是这个fiber的type属性。当执行setState/dispatch后，type函数会被重新执行一次，函数return的vNode会基于上面state的最新值重新生成。从而fiber会基于最新的state重新生成。<br>
+而更新和创建不同的地方在于，我们需要尽可能地沿用之前的DOM以减小性能开销，而不能和创建一样，所有DOM都重新创建和插入，那样的话性能可想而知会奇慢无比。<br>
+所以我们就需要根据新vNode和旧fiber进行比较->得到带有不同标签的新fiber->从而以尽可能精简的DOM操作来完成更新。这个过程就是前端领域常说的diff算法。
+
+## React的右移diff算法
+diff算法属于比较复杂的点，但好在和Vue3双端比较+lis算法比起来，React的右移算法属于是“大道至简”了。<br>
+首先分析下基本盘，要实现尽可能地减少dom操作这个目标，其实就两件事：
+1. 沿用。先判断是否能沿用，对等位对应的旧fiber的dom的type和key属性和新的做比较，如果都相等，那么就直接沿用过来，如果上面的属性、事件等如有增删改就增删改就完事。这样避免了重新创建DOM和绑定DOM的花销。
+2. 移动。仅仅有沿用是不够的，因为仅仅判断等位的旧fiber的DOM能否沿用是不能覆盖日常使用场景的，比如原来是#foo下有abcd四个子元素，而更新后顺序变为了acbd。其中b和c仅仅是调换了下位置而已，但仅仅等位判断沿用的话就需要重新创建c和b两个节点了。所以还需要算法能识别这种节点移动的情况。<br>
+React的diff算法对移动的判断可以用两个字来描述，就是“右移”。再补充一下就是：只有相对位置右移的节点需要移动，左移的节点无需移动。<br>
+以上面的abcd->acbd的例子来说就是，b的相对位置右移了需要移动，c的相对位置左移了无需移动。<br>
+落实到代码上来说，React源码中有lastPlacedIndex、oldIndex和newIndex三个变量。<br>
+其中oldIndex和newIndex容易理解，newIndex就是当前节点在新children中的索引，oldIndex为该节点在旧children中的索引。<br>
+比如节点c，其newIndex为1，oldIndex为2。而lastPlacedIndex描述起来会绕一点，它表示上一个不用动的节点在oldIndex中的索引。<br>
+还是abcd->acbd，我们逐个遍历新children：
+```
+a
+lastPlacedIndex初始为0
+对应的oldIndex为0
+相等，说明a无需移动
+c
+lastPlacedIndex仍为0
+对应的oldIndex为2
+oldIndex > lastPlacedIndex，所以c也不用动
+lastPlacedIndex更新为2
+b
+lastPlacedIndex为2
+b对应的oldIndex为1
+oldIndex < lastPlacedIndex，这种情况我们分析下，首先新的children中b是当前最右的节点，这是我们需要达到的目标。而上一个不用动的节点在旧children中的位置是2，而b对应的oldIndex是1，2对应的节点是我们标记为不用动的，而b目前在2对应节点的左边，实际需要在右边，所以oldIndex < lastPlacedIndex时需要移动。
+d
+lastPlacedIndex为2
+oldIndex为3
+oldIndex > lastPlacedIndex，所以d也不用动
+```
