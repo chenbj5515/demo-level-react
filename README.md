@@ -208,22 +208,9 @@ React的diff算法对移动的判断可以用两个字来描述，就是“右�
 其中oldIndex和newIndex容易理解，newIndex就是当前节点在新children中的索引，oldIndex为该节点在旧children中的索引。<br>
 比如节点c，其newIndex为1，oldIndex为2。而lastPlacedIndex描述起来会绕一点，它表示上一个不用动的节点在oldIndex中的索引。<br>
 还是abcd->acbd，我们逐个遍历新children：
-```
-a
-lastPlacedIndex初始为0
-对应的oldIndex为0
-相等，说明a无需移动
-c
-lastPlacedIndex仍为0
-对应的oldIndex为2
-oldIndex > lastPlacedIndex，所以c也不用动
-lastPlacedIndex更新为2
-b
-lastPlacedIndex为2
-b对应的oldIndex为1
-oldIndex < lastPlacedIndex，这种情况我们分析下，首先新的children中b是当前最右的节点，这是我们需要达到的目标。而上一个不用动的节点在旧children中的位置是2，而b对应的oldIndex是1，2对应的节点是我们标记为不用动的，而b目前在2对应节点的左边，实际需要在右边，所以oldIndex < lastPlacedIndex时需要移动。
-d
-lastPlacedIndex为2
-oldIndex为3
-oldIndex > lastPlacedIndex，所以d也不用动
-```
+    * a lastPlacedIndex初始为0, 对应的oldIndex为0。相等，说明a无需移动
+    * c lastPlacedIndex仍为0, 对应的oldIndex为2。oldIndex > lastPlacedIndex，说明旧的相对关系没问题，c无需移动。根据语义，lastPlacedIndex要更新为2。
+    * b lastPlacedIndex为2, 对应的oldIndex为1。oldIndex < lastPlacedIndex，说明旧的相对关系不满足新的顺序了，b要被标记为移动。
+    * d lastPlacedIndex为2, 对应的oldIndex为3。oldIndex > lastPlacedIndex，说明旧的相对关系没问题，d无需移动。根据语义，lastPlacedIndex要更新为3。
+    
+我们总结下，因为是从左往右遍历新节点，所以表示新节点的旧索引的oldIndex在大于oldPlacedIndex时说明旧的相对位置就是符合新排列顺序的，就无需移动。而反之说明旧的排列无法满足新的需求，需要移动。
