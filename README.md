@@ -212,5 +212,7 @@ React的diff算法对移动的判断可以用两个字来描述，就是“右�
     * c lastPlacedIndex仍为0, 对应的oldIndex为2。oldIndex > lastPlacedIndex，说明旧的相对关系没问题，c无需移动。根据语义，lastPlacedIndex要更新为2。
     * b lastPlacedIndex为2, 对应的oldIndex为1。oldIndex < lastPlacedIndex，说明旧的相对关系不满足新的顺序了，b要被标记为移动。
     * d lastPlacedIndex为2, 对应的oldIndex为3。oldIndex > lastPlacedIndex，说明旧的相对关系没问题，d无需移动。根据语义，lastPlacedIndex要更新为3。
-    
-我们总结下，因为是从左往右遍历新节点，所以表示新节点的旧索引的oldIndex在大于oldPlacedIndex时说明旧的相对位置就是符合新排列顺序的，就无需移动。而反之说明旧的排列无法满足新的需求，需要移动。
+
+我们总结下，因为是从左往右遍历新节点，所以表示新节点的旧索引的oldIndex在大于oldPlacedIndex时说明旧的相对位置就是符合新排列顺序的，就无需移动。而反之说明旧的排列无法满足新的需求，需要移动。<br>
+以上其实这些只是为了更了解React的源码，其实从更抽象的层面上来思考非常简单。我们一眼就看到只有b右移了需要移动，所以b会被标记上PLACEMEMT的就标记。<br>
+最终提交阶段我们逐个遍历new children，遍历到a和c的时候仅仅需要增删改DOM的属性、事件，到了b节点的时候，我们只需要在同样的增删改后，用DOM的insertBefore api，把b插到c的nextSibling即d前面就完成了移动操作。
