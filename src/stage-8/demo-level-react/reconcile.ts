@@ -119,6 +119,8 @@ const getContaienr = (fiber: INormalFiber) => {
 const commitWork = (fiber: INormalFiber, lastFiber: IFiber | null) => {
     if (fiber.flags === EFlags.PLACEMENT) {
         const last = lastFiber?.stateNode;
+        console.log('cur', fiber, last);
+        
         const container = getContaienr(fiber) as Element | null;
         moveAfter(fiber.stateNode, last, container)
     }
@@ -130,6 +132,7 @@ const commit = (wipFiber: IFiber) => {
     let curFiber: IFiber | null | undefined = wipFiber?.child,
         lastFiber: IFiber | null = null;
     while (curFiber) {
+        
         commitWork(curFiber as INormalFiber, lastFiber);
         lastFiber = curFiber;
         curFiber = generateNextFiber(curFiber);
