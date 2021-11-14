@@ -127,6 +127,26 @@ const element = (
 2. 纯文本，如上面例子中a标签中的文本bar.可以看到它是普通jsx的子元素.特征是type为特殊标识TEXT_ELEMENT
 3. 函数的vNode，就是函数jsx转化成的vNode.特征是type为组件函数
 
+## JSX变为vNode的重要细节
+先回顾下，一切的源头的都是App这个组件函数JSX，我们会执行函数组件，得到函数组件return的JSX。<br>
+这个JSX转成vNode一定是个对象这是肯定得。这个对象就是描述JSX的根节点，根节点可能是常规标签或者fragment，如果是fragment的话和普通标签的区别仅在于type为undefined。<br>
+重点在于jsx中常用的map写法：
+```
+<>
+  <input type="text" name="" id="" />
+  {
+      divs.map(item => (
+          <div>{item.text}</div>
+      ))
+  }
+</>
+```
+像这种情况下，这段JSX对应的vNode是什么样的呢？<br>
+首先，vNode对象的type是undefined，然后props.children是一个数组。<br>
+至于数组的每一项则值得玩味了，children的第一项一定是input标签的vNode对象不用多说。<br>
+但第二项却不是map出的vNode，而是又是一个数组，这个数组中的列表项才是数组中每一项对应的vNode。<br>
+这样的对divs的map会包一层数组的规则是babel的jsx插件中设定的，我们需要了解。这个设定给我们reconcile children带来了一些麻烦，目前的解决思路是简单粗暴地拍平，将divs数组的每一项和divs外的其他child一视同仁。
+
 # 从vNode到fiber
 
 ## vNode和fiber的联系与不同？

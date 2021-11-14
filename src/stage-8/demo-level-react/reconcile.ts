@@ -54,7 +54,8 @@ const updateComp = (compFiber: ICompFiber) => {
         let newFiber;
         // 组件的根是<></>的话，则直接reconcile children
         if (!root.type) {
-            const newChildren = (root.props.children as IVNode[]);
+            const newChildren = (root.props.children as IVNode[]).flat();
+            
             reconcileChildrenArray(compFiber, compFiber.alternate?.child || null, newChildren);
             compFiber.alternate = compFiber;
         }
@@ -119,8 +120,6 @@ const getContaienr = (fiber: INormalFiber) => {
 const commitWork = (fiber: INormalFiber, lastFiber: IFiber | null) => {
     if (fiber.flags === EFlags.PLACEMENT) {
         const last = lastFiber?.stateNode;
-        console.log('cur', fiber, last);
-        
         const container = getContaienr(fiber) as Element | null;
         moveAfter(fiber.stateNode, last, container)
     }

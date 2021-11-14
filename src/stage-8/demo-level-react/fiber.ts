@@ -2,7 +2,7 @@ import {IFiber, IVNode, EFlags, INormalVNode, ITextFiber, INormalFiber, INormalT
 import {shallowEqual} from './helpers';
 import {cloneDeep} from 'lodash-es';
 
-export const createFiberFromVNode = (fatherFiber: IFiber | null, newNode?: IVNode | string | number) => {
+export const createFiberFromVNode = (fatherFiber: IFiber | null, newNode?: IVNode | string | number | IVNode[]) => {
     const common = {
         stateNode: null,
         child: null,
@@ -11,7 +11,15 @@ export const createFiberFromVNode = (fatherFiber: IFiber | null, newNode?: IVNod
         parent: fatherFiber || null,
         flags: EFlags.PLACEMENT,
     }
-    if (typeof newNode === 'object') {
+    if (Array.isArray(newNode)) {
+        return {
+            ...common,
+            ...newNode[0],
+            pendingProps: newNode[0].props,
+            renderTimes: 0
+        } as IFiber;
+    }
+    else if (typeof newNode === 'object') {
         return {
             ...common,
             ...newNode,

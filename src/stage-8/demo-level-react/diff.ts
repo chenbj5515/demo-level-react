@@ -89,8 +89,6 @@ const updateSlot = (
 }
 
 export const reconcileChildrenArray = (fatherFiber: IFiber, oldFirstChild: IFiber | null, newChildren: (IVNode | string | number)[]) => {
-    console.log(newChildren, 'newChildren==');
-    
     let newIdx = 0,
         oldFiber: IFiber | null = oldFirstChild,
         newFirstChild: IFiber | null = null,
@@ -110,7 +108,6 @@ export const reconcileChildrenArray = (fatherFiber: IFiber, oldFirstChild: IFibe
                 newFirstChild = newFiber;
             }
             else {
-                // @ts-ignore
                 previousNewFiber.sibling = newFiber;
             }
             previousNewFiber = newFiber;
@@ -125,7 +122,9 @@ export const reconcileChildrenArray = (fatherFiber: IFiber, oldFirstChild: IFibe
     if (!oldFiber) {
         for(;newIdx < newChildren.length; newIdx++) {
             if (!newChildren[newIdx]) break;
-            const newFiber = createFiberFromVNode(fatherFiber, newChildren[newIdx]);
+            const newChild = newChildren[newIdx];
+            const newFiber = createFiberFromVNode(fatherFiber, newChild);
+            
             newFiber.idx = newIdx;
             lastPlacedIndex = placeChild(newFiber, lastPlacedIndex, newIdx);
             
