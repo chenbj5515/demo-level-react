@@ -1,0 +1,14 @@
+.ferry {
+    width: 19px;
+    height: 19px;
+    background-color: black;
+    border-radius: 50%;
+    /* position: absolute; */
+    animation: mymove 10s infinite;
+}
+
+@keyframes mymove
+{
+	from {margin-left: 0px;}
+	to {margin-left: 200px;}
+}
